@@ -1174,8 +1174,15 @@ function oddEvenMergeSortSteps(array) {
   const arr = array.slice();
   const n = arr.length;
   
-  function compareSwap(i, j) {
-    if (i >= 0 && j >= 0 && i < n && j < n) {
+  // Odd-Even Merge Sort only works on power of 2 sized arrays
+  const isPowerOf2 = n > 0 && (n & (n - 1)) === 0;
+  if (!isPowerOf2) {
+    alert('Odd-Even Merge Sort requires array size to be a power of 2 (e.g., 16, 32, 64, 128, 256)');
+    return steps;
+  }
+  
+  function compare(i, j) {
+    if (i < n && j < n) {
       steps.push({ type: 'compare', indices: [i, j], arr: arr.slice() });
       if (arr[i].value > arr[j].value) {
         [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -1184,25 +1191,33 @@ function oddEvenMergeSortSteps(array) {
     }
   }
   
-  function oddEvenMerge(lo, hi, r) {
-    const step = r * 2;
-    if (step < hi - lo) {
-      oddEvenMerge(lo, hi, step);
-      oddEvenMerge(lo + r, hi, step);
-      for (let i = lo + r; i < hi - r; i += step) {
-        compareSwap(i, i + r);
+  function oddEvenMerge(start, length, gap) {
+    const step = 2 * gap;
+    if (step < length) {
+      // Recursively merge odd and even parts
+      oddEvenMerge(start, length, step);
+      oddEvenMerge(start + gap, length, step);
+      // Compare and swap pairs
+      for (let i = start + gap; i + gap < start + length; i += step) {
+        compare(i, i + gap);
       }
     } else {
-      if (lo + r < hi) compareSwap(lo, lo + r);
+      // Base case: just compare the two elements
+      if (start + gap < n) {
+        compare(start, start + gap);
+      }
     }
   }
   
-  function oddEvenMergeSort(lo, hi) {
-    if (hi - lo >= 2) {
-      const mid = lo + Math.floor((hi - lo) / 2);
-      oddEvenMergeSort(lo, mid);
-      oddEvenMergeSort(mid, hi);
-      oddEvenMerge(lo, hi, 1);
+  function oddEvenMergeSort(start, length) {
+    if (length > 1) {
+      const mid = Math.floor(length / 2);
+      // Sort first half
+      oddEvenMergeSort(start, mid);
+      // Sort second half
+      oddEvenMergeSort(start + mid, length - mid);
+      // Merge both halves
+      oddEvenMerge(start, length, 1);
     }
   }
   
@@ -1473,28 +1488,54 @@ function pairwiseSortSteps(array) {
   const arr = array.slice();
   const n = arr.length;
   
+  // Pairwise Sorting Network works best on power of 2 sized arrays
+  const isPowerOf2 = n > 0 && (n & (n - 1)) === 0;
+  if (!isPowerOf2) {
+    alert('Pairwise Sorting Network requires array size to be a power of 2 (e.g., 16, 32, 64, 128, 256)');
+    return steps;
+  }
+  
   function compareSwap(i, j) {
-    if (i >= n || j >= n) return;
-    steps.push({ type: 'compare', indices: [i, j], arr: arr.slice() });
-    if (arr[i].value > arr[j].value) {
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-      steps.push({ type: 'swap', indices: [i, j], arr: arr.slice() });
+    if (i >= 0 && j >= 0 && i < n && j < n && i !== j) {
+      steps.push({ type: 'compare', indices: [i, j], arr: arr.slice() });
+      if (arr[i].value > arr[j].value) {
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        steps.push({ type: 'swap', indices: [i, j], arr: arr.slice() });
+      }
     }
   }
   
-  let p = 1;
-  while (p < n) {
-    let q = p;
-    while (q > 0) {
-      for (let i = 0; i < n - q; i++) {
-        if ((i & p) === 0 && i + q < n) {
-          compareSwap(i, i + q);
+  // Batcher's bitonic sort (used for pairwise network)
+  function bitonicMerge(low, cnt, dir) {
+    if (cnt > 1) {
+      const k = Math.floor(cnt / 2);
+      for (let i = low; i < low + k && i + k < n; i++) {
+        if ((dir && arr[i].value > arr[i + k].value) || (!dir && arr[i].value < arr[i + k].value)) {
+          [arr[i], arr[i + k]] = [arr[i + k], arr[i]];
+          steps.push({ type: 'swap', indices: [i, i + k], arr: arr.slice() });
+        } else {
+          steps.push({ type: 'compare', indices: [i, i + k], arr: arr.slice() });
         }
       }
-      q = Math.floor(q / 2);
+      bitonicMerge(low, k, dir);
+      if (low + k < n) {
+        bitonicMerge(low + k, Math.min(k, n - low - k), dir);
+      }
     }
-    p *= 2;
   }
+  
+  function bitonicSort(low, cnt, dir) {
+    if (cnt > 1) {
+      const k = Math.floor(cnt / 2);
+      bitonicSort(low, k, true);
+      if (low + k < n) {
+        bitonicSort(low + k, Math.min(k, n - low - k), false);
+      }
+      bitonicMerge(low, cnt, dir);
+    }
+  }
+  
+  bitonicSort(0, n, true);
   
   for (let i = 0; i < n; i++) steps.push({ type: 'sorted', indices: [i], arr: arr.slice() });
   return steps;
@@ -2045,48 +2086,48 @@ function blockMergeSortSteps(array) {
 
 // Algorithm-specific defaults (size, speed in ms)
 const ALGORITHM_DEFAULTS = {
-  bubble: { size: 50, speed: 10 },
-  selection: { size: 50, speed: 10 },
-  insertion: { size: 50, speed: 10 },
+  bubble: { size: 50, speed: 5 },
+  selection: { size: 50, speed: 5 },
+  insertion: { size: 50, speed: 5 },
   merge: { size: 200, speed: 1 },
   quick: { size: 200, speed: 1 },
-  heap: { size: 100, speed: 15 },
-  shell: { size: 100, speed: 15 },
-  cocktail: { size: 50, speed: 25 },
-  comb: { size: 80, speed: 15 },
-  gnome: { size: 50, speed: 20 },
-  cycle: { size: 40, speed: 30 },
-  radix: { size: 150, speed: 5 },
+  heap: { size: 100, speed: 5 },
+  shell: { size: 100, speed: 3 },
+  cocktail: { size: 75, speed: 1 },
+  comb: { size: 80, speed: 5 },
+  gnome: { size: 50, speed: 5 },
+  cycle: { size: 50, speed: 10 },
+  radix: { size: 200, speed: 10 },
   counting: { size: 150, speed: 5 },
   bucket: { size: 100, speed: 10 },
   pigeonhole: { size: 100, speed: 10 },
   flash: { size: 100, speed: 10 },
-  bitonic: { size: 64, speed: 15 },
-  oddeven: { size: 80, speed: 20 },
-  pairwise: { size: 64, speed: 20 },
-  bogo: { size: 10, speed: 50 },
+  bitonic: { size: 64, speed: 5 },
+  oddeven: { size: 80, speed: 2 },
+  pairwise: { size: 64, speed: 10 },
+  bogo: { size: 10, speed: 1 },
   stooge: { size: 30, speed: 1 },
   stupid: { size: 15, speed: 1 },
-  pancake: { size: 50, speed: 20 },
-  timsort: { size: 150, speed: 5 },
+  pancake: { size: 50, speed: 10 },
+  timsort: { size: 150, speed: 1 },
   intro: { size: 150, speed: 5 },
   pdq: { size: 150, speed: 5 },
-  dualpivot: { size: 150, speed: 5 },
+  dualpivot: { size: 250, speed: 2 },
   tree: { size: 80, speed: 15 },
   tournament: { size: 80, speed: 15 },
   strand: { size: 50, speed: 10 },
-  library: { size: 60, speed: 20 },
+  library: { size: 60, speed: 5 },
   patience: { size: 60, speed: 20 },
   minmaxselection: { size: 50, speed: 10 },
-  oddmerge: { size: 64, speed: 15 },
+  oddmerge: { size: 128, speed: 15 },
   gravity: { size: 40, speed: 25 },
-  stalin: { size: 50, speed: 20 },
+  stalin: { size: 100, speed: 20 },
   americanflag: { size: 100, speed: 10 },
-  proxmap: { size: 100, speed: 10 },
-  block: { size: 80, speed: 15 },
-  blockmerge: { size: 80, speed: 15 },
-  franceschini: { size: 60, speed: 20 },
-  adaptivemerge: { size: 100, speed: 10 }
+  proxmap: { size: 150, speed: 10 },
+  block: { size: 80, speed: 10 },
+  blockmerge: { size: 80, speed: 5 },
+  franceschini: { size: 60, speed: 10 },
+  adaptivemerge: { size: 100, speed: 5 }
 };
 
 export default function App() {
@@ -2097,7 +2138,7 @@ export default function App() {
   const [currentIndices, setCurrentIndices] = useState([]);
   const [currentStepType, setCurrentStepType] = useState(null);
   const [algorithm, setAlgorithm] = useState('bubble');
-  const [animateSwap, setAnimateSwap] = useState(true);
+  const [animateSwap, setAnimateSwap] = useState(false);
   // Audio context for playing tones
   const audioRef = useRef(null);
   // Hold the active sorting interval so we can stop it from other UI (Stop button)
@@ -2140,6 +2181,19 @@ export default function App() {
       if (defaults) {
         setSize(defaults.size);
         setSpeed(defaults.speed);
+      }
+      
+      // Ensure power of 2 for network sorts
+      if ((algorithm === 'bitonic' || algorithm === 'oddevenmerge' || algorithm === 'pairwise') && !isSorting) {
+        const isPowerOf2 = size > 0 && (size & (size - 1)) === 0;
+        if (!isPowerOf2) {
+          // Find nearest power of 2
+          const powers = [16, 32, 64, 128, 256];
+          const nearest = powers.reduce((prev, curr) => 
+            Math.abs(curr - size) < Math.abs(prev - size) ? curr : prev
+          );
+          setSize(nearest);
+        }
       }
     }
   }, [algorithm]);
@@ -2893,7 +2947,7 @@ export default function App() {
 
       <div className="flex flex-col items-center mb-4">
         <label>Array Size: {size}</label>
-        {algorithm === 'bitonic' ? (
+        {(algorithm === 'bitonic' || algorithm === 'oddevenmerge' || algorithm === 'pairwise') ? (
           <select
             value={size}
             disabled={isSorting}
@@ -2924,7 +2978,7 @@ export default function App() {
         <input
           type="range"
           min="1"
-          max="100"
+          max="30"
           value={speed}
           disabled={isSorting}
           onChange={(e) => setSpeed(Number(e.target.value))}
