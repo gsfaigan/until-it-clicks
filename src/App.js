@@ -679,22 +679,35 @@ function stalinSortSteps(array) {
   const arr = array.slice();
   const n = arr.length;
   
-  // Stalin Sort: remove elements that decrease
-  let writePos = 0;
-  for (let i = 0; i < n; i++) {
-    steps.push({ type: 'compare', indices: [writePos > 0 ? writePos - 1 : 0, i], arr: arr.slice() });
-    if (writePos === 0 || arr[i].value >= arr[writePos - 1].value) {
-      if (i !== writePos) {
-        arr[writePos] = arr[i];
-        steps.push({ type: 'swap', indices: [i, writePos], arr: arr.slice() });
-      }
-      writePos++;
+  // Stalin Sort: progressively remove elements that decrease
+  // Start with full array and remove elements as we go
+  let current = arr.slice();
+  
+  let i = 1;
+  while (i < current.length) {
+    // Compare with previous element
+    steps.push({ type: 'compare', indices: [i - 1, i], arr: current.slice() });
+    
+    if (current[i].value < current[i - 1].value) {
+      // Element must be eliminated! Show it being highlighted before removal
+      steps.push({ type: 'swap', indices: [i], arr: current.slice() });
+      
+      // Remove the element (Stalin's purge)
+      current.splice(i, 1);
+      
+      // Show the new shorter array
+      steps.push({ type: 'overwrite', indices: Array.from({length: current.length}, (_, idx) => idx), arr: current.slice() });
+      
+      // Don't increment i since we removed an element
+    } else {
+      // Element is acceptable, move to next
+      i++;
     }
   }
   
-  // Mark the sorted portion (only the kept elements)
-  for (let i = 0; i < writePos; i++) {
-    steps.push({ type: 'sorted', indices: [i], arr: arr.slice() });
+  // Mark all remaining elements as sorted (they survived Stalin's regime)
+  for (let j = 0; j < current.length; j++) {
+    steps.push({ type: 'sorted', indices: [j], arr: current.slice() });
   }
   
   return steps;
