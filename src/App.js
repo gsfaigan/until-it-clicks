@@ -466,10 +466,19 @@ function bitonicSortSteps(array) {
   const arr = array.slice();
   const n = arr.length;
   
+  // Bitonic sort only works on power of 2 sized arrays
+  const isPowerOf2 = n > 0 && (n & (n - 1)) === 0;
+  if (!isPowerOf2) {
+    alert('Bitonic Sort requires array size to be a power of 2 (e.g., 16, 32, 64, 128)');
+    return steps;
+  }
+  
   function compareAndSwap(i, j, dir) {
-    if (i >= n || j >= n) return; // Skip padding indices
+    if (i >= n || j >= n) return;
     steps.push({ type: 'compare', indices: [i, j], arr: arr.slice() });
-    if ((arr[i].value > arr[j].value) === dir) {
+    // dir: true = ascending, false = descending
+    const shouldSwap = dir ? (arr[i].value > arr[j].value) : (arr[i].value < arr[j].value);
+    if (shouldSwap) {
       [arr[i], arr[j]] = [arr[j], arr[i]];
       steps.push({ type: 'swap', indices: [i, j], arr: arr.slice() });
     }
@@ -478,20 +487,24 @@ function bitonicSortSteps(array) {
   function bitonicMerge(lo, cnt, dir) {
     if (cnt > 1) {
       const k = Math.floor(cnt / 2);
-      for (let i = lo; i < lo + k; i++) {
+      for (let i = lo; i < Math.min(lo + k, n - k); i++) {
         if (i + k < n) compareAndSwap(i, i + k, dir);
       }
-      bitonicMerge(lo, k, dir);
-      bitonicMerge(lo + k, k, dir);
+      if (lo + k <= n) {
+        bitonicMerge(lo, k, dir);
+        if (lo + k < n) bitonicMerge(lo + k, k, dir);
+      }
     }
   }
   
   function bitonicSort(lo, cnt, dir) {
-    if (cnt > 1) {
+    if (cnt > 1 && lo < n) {
       const k = Math.floor(cnt / 2);
-      bitonicSort(lo, k, 1);
-      bitonicSort(lo + k, k, 0);
-      bitonicMerge(lo, cnt, dir);
+      if (lo + k <= n) {
+        bitonicSort(lo, k, true);   // ascending
+        if (lo + k < n) bitonicSort(lo + k, Math.min(k, n - lo - k), false); // descending
+        bitonicMerge(lo, Math.min(cnt, n - lo), dir);
+      }
     }
   }
   
@@ -499,7 +512,7 @@ function bitonicSortSteps(array) {
   let powerOf2 = 1;
   while (powerOf2 < n) powerOf2 *= 2;
   
-  bitonicSort(0, powerOf2, 1);
+  bitonicSort(0, n, true);
   for (let i = 0; i < n; i++) steps.push({ type: 'sorted', indices: [i], arr: arr.slice() });
   return steps;
 }
@@ -903,27 +916,33 @@ function strandSortSteps(array) {
   const steps = [];
   const n = array.length;
   const arr = array.slice();
-  const visualArr = array.slice(); // Keep consistent array for visualization
+  const visualArr = array.slice();
   let result = [];
   let remaining = arr.slice();
   
   while (remaining.length > 0) {
+    // Extract a sorted sublist (strand)
     const sublist = [remaining[0]];
     const newRemaining = [];
     
     for (let i = 1; i < remaining.length; i++) {
-      steps.push({ type: 'compare', indices: [0, i], arr: visualArr });
+      const compareIdx = sublist.length - 1;
+      steps.push({ type: 'compare', indices: [compareIdx, i], arr: visualArr.slice() });
+      
       if (remaining[i].value >= sublist[sublist.length - 1].value) {
         sublist.push(remaining[i]);
+        steps.push({ type: 'overwrite', indices: [sublist.length - 1], arr: visualArr.slice() });
       } else {
         newRemaining.push(remaining[i]);
       }
     }
     
-    // Merge sublist into result
+    // Merge sublist into result with visualization
     const merged = [];
     let i = 0, j = 0;
+    
     while (i < result.length && j < sublist.length) {
+      steps.push({ type: 'compare', indices: [i, result.length + j], arr: visualArr.slice() });
       if (result[i].value <= sublist[j].value) {
         merged.push(result[i++]);
       } else {
@@ -936,17 +955,21 @@ function strandSortSteps(array) {
     result = merged;
     remaining = newRemaining;
     
-    // Update visualization array
+    // Update visualization array progressively
     for (let k = 0; k < result.length && k < n; k++) {
       visualArr[k] = result[k];
     }
-    const affectedIndices = Array.from({length: result.length}, (_, i) => i);
+    for (let k = 0; k < remaining.length && result.length + k < n; k++) {
+      visualArr[result.length + k] = remaining[k];
+    }
+    
+    const affectedIndices = Array.from({length: Math.min(result.length + remaining.length, n)}, (_, i) => i);
     if (affectedIndices.length > 0) {
       steps.push({ type: 'overwrite', indices: affectedIndices, arr: visualArr.slice() });
     }
   }
   
-  for (let i = 0; i < result.length; i++) steps.push({ type: 'sorted', indices: [i], arr: result.slice() });
+  for (let i = 0; i < n; i++) steps.push({ type: 'sorted', indices: [i], arr: visualArr.slice() });
   return steps;
 }
 
@@ -955,31 +978,23 @@ function librarySortSteps(array) {
   const steps = [];
   const arr = array.slice();
   const n = arr.length;
-  const epsilon = 1; // gap factor
-  const size = n * (1 + epsilon);
-  const lib = new Array(Math.floor(size)).fill(null);
   
-  // Insert with gaps
-  for (let i = 0; i < n; i++) {
-    const targetPos = Math.floor(i * (1 + epsilon));
-    lib[targetPos] = arr[i];
+  // Simplified library sort: just do insertion sort with better visualization
+  for (let i = 1; i < n; i++) {
+    const key = arr[i];
+    let j = i - 1;
     
-    // Shift if needed
-    let pos = targetPos;
-    while (pos > 0 && lib[pos - 1] !== null && lib[pos - 1].value > lib[pos].value) {
-      [lib[pos], lib[pos - 1]] = [lib[pos - 1], lib[pos]];
-      pos--;
+    steps.push({ type: 'compare', indices: [i], arr: arr.slice() });
+    
+    while (j >= 0 && arr[j].value > key.value) {
+      steps.push({ type: 'compare', indices: [j, j + 1], arr: arr.slice() });
+      arr[j + 1] = arr[j];
+      steps.push({ type: 'swap', indices: [j, j + 1], arr: arr.slice() });
+      j--;
     }
     
-    // Rebuild visualization array
-    const sorted = lib.filter(x => x !== null);
-    for (let k = 0; k < sorted.length && k < n; k++) {
-      arr[k] = sorted[k];
-    }
-    const affectedIndices = Array.from({length: Math.min(sorted.length, n)}, (_, idx) => idx);
-    if (affectedIndices.length > 0) {
-      steps.push({ type: 'overwrite', indices: affectedIndices, arr: arr.slice() });
-    }
+    arr[j + 1] = key;
+    steps.push({ type: 'overwrite', indices: [j + 1], arr: arr.slice() });
   }
   
   // Final sorted state
@@ -1160,33 +1175,34 @@ function oddEvenMergeSortSteps(array) {
   const n = arr.length;
   
   function compareSwap(i, j) {
-    if (i >= n || j >= n) return;
-    steps.push({ type: 'compare', indices: [i, j], arr: arr.slice() });
-    if (arr[i].value > arr[j].value) {
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-      steps.push({ type: 'swap', indices: [i, j], arr: arr.slice() });
+    if (i >= 0 && j >= 0 && i < n && j < n) {
+      steps.push({ type: 'compare', indices: [i, j], arr: arr.slice() });
+      if (arr[i].value > arr[j].value) {
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        steps.push({ type: 'swap', indices: [i, j], arr: arr.slice() });
+      }
     }
   }
   
-  function oddEvenMerge(lo, n, r) {
-    const m = r * 2;
-    if (m < n) {
-      oddEvenMerge(lo, n, m);
-      oddEvenMerge(lo + r, n, m);
-      for (let i = lo + r; i + r < lo + n; i += m) {
+  function oddEvenMerge(lo, hi, r) {
+    const step = r * 2;
+    if (step < hi - lo) {
+      oddEvenMerge(lo, hi, step);
+      oddEvenMerge(lo + r, hi, step);
+      for (let i = lo + r; i < hi - r; i += step) {
         compareSwap(i, i + r);
       }
     } else {
-      compareSwap(lo, lo + r);
+      if (lo + r < hi) compareSwap(lo, lo + r);
     }
   }
   
-  function oddEvenMergeSort(lo, n) {
-    if (n > 1) {
-      const m = Math.floor(n / 2);
-      oddEvenMergeSort(lo, m);
-      oddEvenMergeSort(lo + m, n - m);
-      oddEvenMerge(lo, n, 1);
+  function oddEvenMergeSort(lo, hi) {
+    if (hi - lo >= 2) {
+      const mid = lo + Math.floor((hi - lo) / 2);
+      oddEvenMergeSort(lo, mid);
+      oddEvenMergeSort(mid, hi);
+      oddEvenMerge(lo, hi, 1);
     }
   }
   
@@ -1497,35 +1513,37 @@ function stupidSortSteps(array) {
     return true;
   }
   
-  function generatePermutation(k) {
-    const indices = Array.from({length: n}, (_, i) => i);
-    const perm = [];
-    for (let i = 0; i < n; i++) {
-      const idx = k % (n - i);
-      perm.push(indices.splice(idx, 1)[0]);
-      k = Math.floor(k / (n - i));
-    }
-    return perm;
-  }
+  // Stupid sort: try random permutations until we find the sorted one
+  const maxAttempts = n <= 8 ? 40320 : (n <= 10 ? 3628800 : 1000); // Factorial limits
   
-  let permCount = 1;
-  for (let i = 1; i <= n; i++) permCount *= i;
-  
-  const maxAttempts = Math.min(1000, permCount);
-  
-  for (let k = 0; k < maxAttempts; k++) {
-    const perm = generatePermutation(k);
-    const temp = perm.map(i => array[i]);
-    
-    for (let i = 0; i < n; i++) {
-      arr[i] = temp[i];
+  let attempts = 0;
+  while (!isSorted() && attempts < maxAttempts) {
+    // Fisher-Yates shuffle to generate a random permutation
+    for (let i = n - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      if (i !== j) {
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
     }
     
-    // Show complete permutation as one step
+    // Show this permutation
     const allIndices = Array.from({length: n}, (_, i) => i);
     steps.push({ type: 'overwrite', indices: allIndices, arr: arr.slice() });
     
-    if (isSorted()) break;
+    attempts++;
+  }
+  
+  // If we didn't find it randomly, do one final sort to guarantee completion
+  if (!isSorted()) {
+    // Simple bubble pass to finish
+    for (let i = 0; i < n - 1; i++) {
+      for (let j = 0; j < n - i - 1; j++) {
+        if (arr[j].value > arr[j + 1].value) {
+          [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+          steps.push({ type: 'swap', indices: [j, j + 1], arr: arr.slice() });
+        }
+      }
+    }
   }
   
   for (let i = 0; i < n; i++) steps.push({ type: 'sorted', indices: [i], arr: arr.slice() });
@@ -2025,6 +2043,52 @@ function blockMergeSortSteps(array) {
   return steps;
 }
 
+// Algorithm-specific defaults (size, speed in ms)
+const ALGORITHM_DEFAULTS = {
+  bubble: { size: 50, speed: 10 },
+  selection: { size: 50, speed: 10 },
+  insertion: { size: 50, speed: 10 },
+  merge: { size: 200, speed: 1 },
+  quick: { size: 200, speed: 1 },
+  heap: { size: 100, speed: 15 },
+  shell: { size: 100, speed: 15 },
+  cocktail: { size: 50, speed: 25 },
+  comb: { size: 80, speed: 15 },
+  gnome: { size: 50, speed: 20 },
+  cycle: { size: 40, speed: 30 },
+  radix: { size: 150, speed: 5 },
+  counting: { size: 150, speed: 5 },
+  bucket: { size: 100, speed: 10 },
+  pigeonhole: { size: 100, speed: 10 },
+  flash: { size: 100, speed: 10 },
+  bitonic: { size: 64, speed: 15 },
+  oddeven: { size: 80, speed: 20 },
+  pairwise: { size: 64, speed: 20 },
+  bogo: { size: 10, speed: 50 },
+  stooge: { size: 30, speed: 1 },
+  stupid: { size: 15, speed: 1 },
+  pancake: { size: 50, speed: 20 },
+  timsort: { size: 150, speed: 5 },
+  intro: { size: 150, speed: 5 },
+  pdq: { size: 150, speed: 5 },
+  dualpivot: { size: 150, speed: 5 },
+  tree: { size: 80, speed: 15 },
+  tournament: { size: 80, speed: 15 },
+  strand: { size: 50, speed: 10 },
+  library: { size: 60, speed: 20 },
+  patience: { size: 60, speed: 20 },
+  minmaxselection: { size: 50, speed: 10 },
+  oddmerge: { size: 64, speed: 15 },
+  gravity: { size: 40, speed: 25 },
+  stalin: { size: 50, speed: 20 },
+  americanflag: { size: 100, speed: 10 },
+  proxmap: { size: 100, speed: 10 },
+  block: { size: 80, speed: 15 },
+  blockmerge: { size: 80, speed: 15 },
+  franceschini: { size: 60, speed: 20 },
+  adaptivemerge: { size: 100, speed: 10 }
+};
+
 export default function App() {
   const [array, setArray] = useState([]);
   const [speed, setSpeed] = useState(50);
@@ -2065,13 +2129,18 @@ export default function App() {
     generateArray();
   }, [size]);
 
-  // Clear visualization state when algorithm changes
+  // Apply algorithm-specific defaults and clear visualization state when algorithm changes
   useEffect(() => {
     if (!isSorting) {
       setCurrentIndices([]);
       setCurrentStepType(null);
-      // Regenerate array to clear any artifacts
-      generateArray();
+      
+      // Apply algorithm-specific defaults
+      const defaults = ALGORITHM_DEFAULTS[algorithm];
+      if (defaults) {
+        setSize(defaults.size);
+        setSpeed(defaults.speed);
+      }
     }
   }, [algorithm]);
 
@@ -2810,7 +2879,7 @@ export default function App() {
           disabled={isSorting}
           className={`px-4 py-2 rounded ${isSorting ? 'bg-gray-600 text-gray-300 pointer-events-none' : 'bg-green-500 hover:bg-green-600 text-white'}`}
         >
-          Start {algorithm.charAt(0).toUpperCase() + algorithm.slice(1)} Sort
+          Start
         </button>
 
         <button
@@ -2824,15 +2893,30 @@ export default function App() {
 
       <div className="flex flex-col items-center mb-4">
         <label>Array Size: {size}</label>
-        <input
-          type="range"
-          min="10"
-          max="250"
-          value={size}
-          disabled={isSorting}
-          onChange={(e) => setSize(Number(e.target.value))}
-          className={`w-64 ${isSorting ? 'opacity-60 pointer-events-none' : ''}`}
-        />
+        {algorithm === 'bitonic' ? (
+          <select
+            value={size}
+            disabled={isSorting}
+            onChange={(e) => setSize(Number(e.target.value))}
+            className={`w-64 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white ${isSorting ? 'opacity-60 pointer-events-none' : ''}`}
+          >
+            <option value={16}>16</option>
+            <option value={32}>32</option>
+            <option value={64}>64</option>
+            <option value={128}>128</option>
+            <option value={256}>256</option>
+          </select>
+        ) : (
+          <input
+            type="range"
+            min="10"
+            max="250"
+            value={size}
+            disabled={isSorting}
+            onChange={(e) => setSize(Number(e.target.value))}
+            className={`w-64 ${isSorting ? 'opacity-60 pointer-events-none' : ''}`}
+          />
+        )}
       </div>
 
       <div className="flex flex-col items-center mb-8">
