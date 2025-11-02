@@ -1496,46 +1496,27 @@ function pairwiseSortSteps(array) {
   }
   
   function compareSwap(i, j) {
-    if (i >= 0 && j >= 0 && i < n && j < n && i !== j) {
-      steps.push({ type: 'compare', indices: [i, j], arr: arr.slice() });
-      if (arr[i].value > arr[j].value) {
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-        steps.push({ type: 'swap', indices: [i, j], arr: arr.slice() });
-      }
+    if (i >= n || j >= n) return;
+    steps.push({ type: 'compare', indices: [i, j], arr: arr.slice() });
+    if (arr[i].value > arr[j].value) {
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      steps.push({ type: 'swap', indices: [i, j], arr: arr.slice() });
     }
   }
   
-  // Batcher's bitonic sort (used for pairwise network)
-  function bitonicMerge(low, cnt, dir) {
-    if (cnt > 1) {
-      const k = Math.floor(cnt / 2);
-      for (let i = low; i < low + k && i + k < n; i++) {
-        if ((dir && arr[i].value > arr[i + k].value) || (!dir && arr[i].value < arr[i + k].value)) {
-          [arr[i], arr[i + k]] = [arr[i + k], arr[i]];
-          steps.push({ type: 'swap', indices: [i, i + k], arr: arr.slice() });
-        } else {
-          steps.push({ type: 'compare', indices: [i, i + k], arr: arr.slice() });
+  let p = 1;
+  while (p < n) {
+    let q = p;
+    while (q > 0) {
+      for (let i = 0; i < n - q; i++) {
+        if ((i & p) === 0 && i + q < n) {
+          compareSwap(i, i + q);
         }
       }
-      bitonicMerge(low, k, dir);
-      if (low + k < n) {
-        bitonicMerge(low + k, Math.min(k, n - low - k), dir);
-      }
+      q = Math.floor(q / 2);
     }
+    p *= 2;
   }
-  
-  function bitonicSort(low, cnt, dir) {
-    if (cnt > 1) {
-      const k = Math.floor(cnt / 2);
-      bitonicSort(low, k, true);
-      if (low + k < n) {
-        bitonicSort(low + k, Math.min(k, n - low - k), false);
-      }
-      bitonicMerge(low, cnt, dir);
-    }
-  }
-  
-  bitonicSort(0, n, true);
   
   for (let i = 0; i < n; i++) steps.push({ type: 'sorted', indices: [i], arr: arr.slice() });
   return steps;
@@ -2092,24 +2073,24 @@ const ALGORITHM_DEFAULTS = {
   merge: { size: 200, speed: 1 },
   quick: { size: 200, speed: 1 },
   heap: { size: 100, speed: 5 },
-  shell: { size: 100, speed: 3 },
+  shell: { size: 100, speed: 15 },
   cocktail: { size: 75, speed: 1 },
   comb: { size: 80, speed: 5 },
   gnome: { size: 50, speed: 5 },
   cycle: { size: 50, speed: 10 },
-  radix: { size: 200, speed: 10 },
+  radix: { size: 150, speed: 5 },
   counting: { size: 150, speed: 5 },
   bucket: { size: 100, speed: 10 },
   pigeonhole: { size: 100, speed: 10 },
   flash: { size: 100, speed: 10 },
   bitonic: { size: 64, speed: 5 },
   oddeven: { size: 80, speed: 2 },
-  pairwise: { size: 64, speed: 10 },
+  pairwise: { size: 64, speed: 20 },
   bogo: { size: 10, speed: 1 },
   stooge: { size: 30, speed: 1 },
   stupid: { size: 15, speed: 1 },
-  pancake: { size: 50, speed: 10 },
-  timsort: { size: 150, speed: 1 },
+  pancake: { size: 50, speed: 20 },
+  timsort: { size: 150, speed: 5 },
   intro: { size: 150, speed: 5 },
   pdq: { size: 150, speed: 5 },
   dualpivot: { size: 250, speed: 2 },
@@ -2119,11 +2100,11 @@ const ALGORITHM_DEFAULTS = {
   library: { size: 60, speed: 5 },
   patience: { size: 60, speed: 20 },
   minmaxselection: { size: 50, speed: 10 },
-  oddmerge: { size: 128, speed: 15 },
+  oddmerge: { size: 64, speed: 15 },
   gravity: { size: 40, speed: 25 },
-  stalin: { size: 100, speed: 20 },
+  stalin: { size: 50, speed: 20 },
   americanflag: { size: 100, speed: 10 },
-  proxmap: { size: 150, speed: 10 },
+  proxmap: { size: 100, speed: 10 },
   block: { size: 80, speed: 10 },
   blockmerge: { size: 80, speed: 5 },
   franceschini: { size: 60, speed: 10 },
@@ -2138,7 +2119,7 @@ export default function App() {
   const [currentIndices, setCurrentIndices] = useState([]);
   const [currentStepType, setCurrentStepType] = useState(null);
   const [algorithm, setAlgorithm] = useState('bubble');
-  const [animateSwap, setAnimateSwap] = useState(false);
+  const [animateSwap, setAnimateSwap] = useState(true);
   // Audio context for playing tones
   const audioRef = useRef(null);
   // Hold the active sorting interval so we can stop it from other UI (Stop button)
@@ -2913,7 +2894,7 @@ export default function App() {
         }
       `}</style>
       <h1 className="text-3xl font-bold mb-4">Sorting Algorithm Crash Course</h1>
-      <h2 style={{ marginBottom: "20px" }}>By Gabriel Faigan</h2>
+      <h2 style={{ marginBottom: "20px" }}>By <a href="https://faigan.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">Gabriel Faigan</a></h2>
       
       <div className="flex gap-4 mb-4 items-center">
         <button
