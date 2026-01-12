@@ -2323,7 +2323,9 @@ const ALGORITHM_DEFAULTS = {
   block: { size: 80, speed: 10 },
   blockmerge: { size: 80, speed: 5 },
   franceschini: { size: 60, speed: 10 },
-  adaptivemerge: { size: 100, speed: 5 }
+  adaptivemerge: { size: 100, speed: 5 },
+  smooth: { size: 100, speed: 5 },
+  spreadsort: { size: 150, speed: 5 }
 };
 
 export default function App() {
@@ -3291,9 +3293,9 @@ export default function App() {
         />
       </div>
 
-  {/* Main area: left algorithm list + visualization */}
-  <div className="w-full max-w-5xl flex gap-4 items-start">
-    <div className="w-56 bg-gray-800 p-2 rounded h-96 flex flex-col relative">
+  {/* Main area: algorithm list + visualization (stacked on mobile, side-by-side on desktop) */}
+  <div className="w-full max-w-5xl flex flex-col md:flex-row md:flex-wrap gap-4 items-start">
+    <div className="w-full md:w-56 bg-gray-800 p-2 rounded h-64 md:h-96 flex flex-col relative order-3 md:order-1">
       <div className="text-sm text-gray-300 font-semibold mb-2 text-center">Algorithms</div>
       <div className="flex-1 overflow-y-scroll space-y-1 pr-1 algorithm-scroll" style={{
         scrollbarWidth: 'thin',
@@ -3361,8 +3363,8 @@ export default function App() {
       }}></div>
     </div>
 
-    <div className="flex-1">
-      <div className="relative h-96 w-full border border-gray-700 bg-gray-800 p-2 rounded overflow-hidden">
+    <div className="flex-1 order-1 md:order-2 w-full">
+      <div className="relative h-64 md:h-96 w-full border border-gray-700 bg-gray-800 p-2 rounded overflow-hidden">
         {array.map((item, idx) => {
           const barWidth = 100 / Math.max(1, array.length);
           const leftPercent = idx * barWidth;
@@ -3424,16 +3426,14 @@ export default function App() {
           );
         })}
       </div>
+    </div>
 
-      <div className="max-w-3xl text-sm text-gray-300 mt-6 px-4">
-        <div>
-          <h3 className="font-semibold">How it works</h3>
-          <div className="text-xs text-gray-400 mb-2">{currentInfo.complexity}</div>
-          <ol className="list-decimal ml-6">
-            {currentInfo.steps.map((s, i) => <li key={i}>{s}</li>)}
-          </ol>
-        </div>
-      </div>
+    <div className="w-full md:w-full text-sm text-gray-300 px-4 order-2 md:order-3">
+      <h3 className="font-semibold">How it works</h3>
+      <div className="text-xs text-gray-400 mb-2">{currentInfo.complexity}</div>
+      <ol className="list-decimal ml-6">
+        {currentInfo.steps.map((s, i) => <li key={i}>{s}</li>)}
+      </ol>
     </div>
   </div>
 </div>
