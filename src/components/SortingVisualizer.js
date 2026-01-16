@@ -700,7 +700,7 @@ function oddEvenSortSteps(array) {
 function stalinSortSteps(array) {
   const steps = [];
   const arr = array.slice();
-  const n = arr.length;
+  const _n = arr.length; // eslint-disable-line no-unused-vars
   
   // Stalin Sort: progressively remove elements that decrease
   // Start with full array and remove elements as we go
@@ -1012,11 +1012,11 @@ function smoothsortSteps(array) {
       const rightOrder = order - 2;
 
       sizes.push(leftOrder);
-      const leftRoot = getRoot(sizes.length - 1);
+      getRoot(sizes.length - 1); // compute root position
       restoreHeap(sizes.length - 1);
 
       sizes.push(rightOrder);
-      const rightRoot = getRoot(sizes.length - 1);
+      getRoot(sizes.length - 1); // compute root position
       restoreHeap(sizes.length - 1);
     }
 
@@ -1690,8 +1690,8 @@ function pairwiseSortSteps(array) {
     alert('Pairwise Sorting Network requires array size to be a power of 2 (e.g., 16, 32, 64, 128, 256)');
     return steps;
   }
-  
-  function compareSwap(i, j) {
+
+  function compareSwap(i, j) { // eslint-disable-line no-unused-vars
     if (i >= 0 && j >= 0 && i < n && j < n && i !== j) {
       steps.push({ type: 'compare', indices: [i, j], arr: arr.slice() });
       if (arr[i].value > arr[j].value) {
@@ -1855,8 +1855,8 @@ function franceschiniSortSteps(array) {
   const steps = [];
   const arr = array.slice();
   const n = arr.length;
-  
-  function insertionSort(l, r) {
+
+  function insertionSort(l, r) { // eslint-disable-line no-unused-vars
     for (let i = l + 1; i <= r; i++) {
       const key = arr[i];
       let j = i - 1;
@@ -2201,8 +2201,8 @@ function blockMergeSortSteps(array) {
       steps.push({ type: 'overwrite', indices: [j + 1], arr: arr.slice() });
     }
   }
-  
-  function rotate(l, m, r) {
+
+  function rotate(l, m, r) { // eslint-disable-line no-unused-vars
     // Reverse-based rotation
     function reverse(start, end) {
       while (start < end) {
@@ -2367,6 +2367,7 @@ export default function SortingVisualizer({ onBack, initialAlgorithm }) {
 
   useEffect(() => {
     generateArray();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size]);
 
   // Apply algorithm-specific defaults and clear visualization state when algorithm changes
@@ -2395,6 +2396,7 @@ export default function SortingVisualizer({ onBack, initialAlgorithm }) {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [algorithm]);
 
   // Visualize sorting process
@@ -2642,9 +2644,8 @@ export default function SortingVisualizer({ onBack, initialAlgorithm }) {
     o2.frequency.value = freq * 1.98;
     o2.detune.value = 6; // slight positive detune for warmth
 
-    // Gentle envelope parameters (slightly longer attack & release for smoothness)
+    // Gentle envelope parameters
     const attack = Math.min(0.02, duration * 0.3);
-    const release = Math.max(0.04, duration - attack);
 
     // Start gains very low to avoid clicks
     g1.gain.setValueAtTime(0.0001, t);

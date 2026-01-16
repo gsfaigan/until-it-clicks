@@ -34,10 +34,12 @@ export function binarySearchSteps(array, target) {
       steps.push({ type: 'found', indices: [mid], arr: arr.slice() });
       return steps;
     } else if (arr[mid].value < target) {
-      steps.push({ type: 'eliminate', indices: Array.from({ length: mid - left + 1 }, (_, i) => left + i), arr: arr.slice() });
+      const currentLeft = left;
+      steps.push({ type: 'eliminate', indices: Array.from({ length: mid - currentLeft + 1 }, (_, i) => currentLeft + i), arr: arr.slice() });
       left = mid + 1;
     } else {
-      steps.push({ type: 'eliminate', indices: Array.from({ length: right - mid + 1 }, (_, i) => mid + i), arr: arr.slice() });
+      const currentMid = mid;
+      steps.push({ type: 'eliminate', indices: Array.from({ length: right - currentMid + 1 }, (_, i) => currentMid + i), arr: arr.slice() });
       right = mid - 1;
     }
   }

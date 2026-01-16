@@ -53,6 +53,7 @@ export default function PathfindingVisualizer({ onBack, initialAlgorithm }) {
 
   useEffect(() => {
     initGrid();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -62,6 +63,7 @@ export default function PathfindingVisualizer({ onBack, initialAlgorithm }) {
         setSpeed(defaults.speed);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [algorithm]);
 
   // Clear walls only

@@ -38,7 +38,6 @@ export function playTone(ctx, freq, duration = 0.12) {
   o2.detune.value = 6;
 
   const attack = Math.min(0.02, duration * 0.3);
-  const release = Math.max(0.04, duration - attack);
 
   g1.gain.setValueAtTime(0.0001, t);
   g2.gain.setValueAtTime(0.0001, t);

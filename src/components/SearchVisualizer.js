@@ -57,6 +57,7 @@ export default function SearchVisualizer({ onBack, initialAlgorithm }) {
 
   useEffect(() => {
     generateArray();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size]);
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function SearchVisualizer({ onBack, initialAlgorithm }) {
         generateArray();
       }, 0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [algorithm]);
 
   function visualizeSearch() {
