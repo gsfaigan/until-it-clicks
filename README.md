@@ -1,4 +1,4 @@
-# Sorting Visualizer
+# Orderly Chaos
 
 An interactive web application that visualizes 44 sorting, 7 search, and 7 pathfinding algorithms with real-time audio feedback.
 
