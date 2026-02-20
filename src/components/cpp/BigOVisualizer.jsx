@@ -37,6 +37,49 @@ export default function BigOVisualizer({ onBack }) {
   });
   const [hoverN, setHoverN] = useState(null);
   const [highlightedComplexity, setHighlightedComplexity] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const playIntervalRef = useRef(null);
+
+  // Auto-increment animation
+  useEffect(() => {
+    if (isPlaying) {
+      playIntervalRef.current = setInterval(() => {
+        setNValue(prev => {
+          if (prev >= 100) {
+            setIsPlaying(false);
+            return 100;
+          }
+          return prev + 1;
+        });
+      }, 100);
+    } else {
+      if (playIntervalRef.current) {
+        clearInterval(playIntervalRef.current);
+      }
+    }
+
+    return () => {
+      if (playIntervalRef.current) {
+        clearInterval(playIntervalRef.current);
+      }
+    };
+  }, [isPlaying]);
+
+  const handlePlay = () => {
+    if (nValue >= 100) {
+      setNValue(1);
+    }
+    setIsPlaying(true);
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
+  };
+
+  const handleReset = () => {
+    setIsPlaying(false);
+    setNValue(1);
+  };
 
   // Calculate chart bounds
   const chartConfig = useMemo(() => {
@@ -256,13 +299,28 @@ export default function BigOVisualizer({ onBack }) {
         </button>
         <h1 className="text-sm font-semibold tracking-widest text-zinc-300">BIG-O COMPLEXITY VISUALIZER</h1>
         <div className="flex items-center gap-4">
+          <button
+            onClick={handleReset}
+            className="px-3 py-1 text-sm bg-zinc-800 hover:bg-zinc-700"
+          >
+            Reset
+          </button>
+          <button
+            onClick={isPlaying ? handlePause : handlePlay}
+            className={`px-4 py-1 text-sm min-w-[80px] ${isPlaying ? 'bg-yellow-600 hover:bg-yellow-500' : 'bg-green-600 hover:bg-green-500'}`}
+          >
+            {isPlaying ? 'Pause' : 'Play'}
+          </button>
           <span className="text-xs text-zinc-500">n:</span>
           <input
             type="range"
-            min="10"
+            min="1"
             max="100"
             value={nValue}
-            onChange={(e) => setNValue(parseInt(e.target.value, 10))}
+            onChange={(e) => {
+              setIsPlaying(false);
+              setNValue(parseInt(e.target.value, 10));
+            }}
             className="w-32 accent-blue-500"
           />
           <span className="text-sm font-mono w-8">{nValue}</span>
