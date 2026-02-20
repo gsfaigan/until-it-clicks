@@ -189,14 +189,15 @@ function FilesystemTab({ fs, setFs, cwd, setCwd }) {
       }
 
       case 'ls': {
-        const showAll = args.includes('-a');
-        const showLong = args.includes('-l');
+        const flagStr = args.filter(a => a.startsWith('-')).join('');
+        const showAll = flagStr.includes('a');
+        const showLong = flagStr.includes('l');
         const targetPath = args.find(a => !a.startsWith('-')) || cwd;
         const resolved = resolvePath(targetPath);
         const node = getNode(resolved);
 
         if (!node) {
-          result = [`ls: ${targetPath}: No such file or directory`];
+          result = [`ls: cannot access '${targetPath}': No such file or directory`];
         } else if (node.type !== 'dir') {
           result = [targetPath];
         } else {
@@ -204,11 +205,20 @@ function FilesystemTab({ fs, setFs, cwd, setCwd }) {
           const filtered = showAll ? entries : entries.filter(([name]) => !name.startsWith('.'));
 
           if (showLong) {
+            let totalBlocks = 0;
+            filtered.forEach(([, item]) => {
+              const sz = item.type === 'dir' ? 4096 : (item.size || 0);
+              totalBlocks += Math.ceil(sz / 512) * (sz > 0 ? 1 : 0);
+            });
+            result.push(`total ${totalBlocks}`);
             filtered.forEach(([name, item]) => {
               const typeChar = item.type === 'dir' ? 'd' : '-';
-              const perms = item.perms || 'rw-r--r--';
-              const size = (item.size || 0).toString().padStart(6);
-              result.push(`${typeChar}${perms}  1 user user ${size} Jan 15 10:23 ${name}${item.type === 'dir' ? '/' : ''}`);
+              const perms = item.perms || (item.type === 'dir' ? 'rwxr-xr-x' : 'rw-r--r--');
+              const size = item.type === 'dir' ? 4096 : (item.size || 0);
+              const links = item.type === 'dir'
+                ? 2 + Object.values(item.children || {}).filter(c => c.type === 'dir').length
+                : 1;
+              result.push(`${typeChar}${perms} ${links.toString().padStart(2)} user user ${size.toString().padStart(8)} Jan 15 10:23 ${name}`);
             });
           } else {
             result = [filtered.map(([name, item]) => name + (item.type === 'dir' ? '/' : '')).join('  ')];
@@ -876,14 +886,15 @@ function TerminalTab({ fs, setFs, cwd, setCwd }) {
       }
 
       case 'ls': {
-        const showAll = args.includes('-a');
-        const showLong = args.includes('-l');
+        const flagStr = args.filter(a => a.startsWith('-')).join('');
+        const showAll = flagStr.includes('a');
+        const showLong = flagStr.includes('l');
         const targetPath = args.find(a => !a.startsWith('-')) || cwd;
         const resolved = resolvePath(targetPath);
         const node = getNode(resolved);
 
         if (!node) {
-          output = [`ls: ${targetPath}: No such file or directory`];
+          output = [`ls: cannot access '${targetPath}': No such file or directory`];
         } else if (node.type !== 'dir') {
           output = [targetPath];
         } else {
@@ -891,11 +902,20 @@ function TerminalTab({ fs, setFs, cwd, setCwd }) {
           const filtered = showAll ? entries : entries.filter(([name]) => !name.startsWith('.'));
 
           if (showLong) {
+            let totalBlocks = 0;
+            filtered.forEach(([, item]) => {
+              const sz = item.type === 'dir' ? 4096 : (item.size || 0);
+              totalBlocks += Math.ceil(sz / 512) * (sz > 0 ? 1 : 0);
+            });
+            output.push(`total ${totalBlocks}`);
             filtered.forEach(([name, item]) => {
               const typeChar = item.type === 'dir' ? 'd' : '-';
-              const perms = item.perms || 'rw-r--r--';
-              const size = (item.size || 0).toString().padStart(6);
-              output.push(`${typeChar}${perms}  1 user user ${size} Jan 15 10:23 ${name}${item.type === 'dir' ? '/' : ''}`);
+              const perms = item.perms || (item.type === 'dir' ? 'rwxr-xr-x' : 'rw-r--r--');
+              const size = item.type === 'dir' ? 4096 : (item.size || 0);
+              const links = item.type === 'dir'
+                ? 2 + Object.values(item.children || {}).filter(c => c.type === 'dir').length
+                : 1;
+              output.push(`${typeChar}${perms} ${links.toString().padStart(2)} user user ${size.toString().padStart(8)} Jan 15 10:23 ${name}`);
             });
           } else {
             output = [filtered.map(([name, item]) => name + (item.type === 'dir' ? '/' : '')).join('  ')];
